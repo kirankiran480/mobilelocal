@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mobilelocal</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/styles.css" />
+  
+        <!-- make this page mobile-friendly by allowing the map to capture zooms -->
+       
+        <!-- load the Google Maps API v3 -->
+        <link href="css/jquery-ui.css" rel="stylesheet" type="text/css"/>  
+        <style>
+         #news{border: 1px solid gray;   }
+    </style>
+   
+ 
+  <script src="js/jquery-1.11.0.js"></script> 
+  <script src="http://maps.googleapis.com/maps/api/js?sensor=false&libraries=places"></script>
+    <script src="js/jquery.geocomplete.js"></script>
+    <script src="js/logger.js"></script>
+     <script src="js/bootstrap.js"></script>
+         </head>
+<body>
+	     <div class="container">
+	     	<div class="row">
+         <div class="col-lg-12 col-sm-12 col-md-12">
+            
+            <div class="bs-example">
+              <ul class="nav nav-tabs" style="margin-bottom: 15px;">
+                <li class="active"><a href="#home" data-toggle="tab">Home</a></li>
+                <li class=""><a href="#weather" data-toggle="tab">Weather</a></li>
+                <li class=""><a href="#newss" data-toggle="tab">News</a></li>
+                
+              </ul>
+              <div id="myTabContent" class="tab-content">
+                <div class="tab-pane active" id="home">
+                  <p>
+     <form>
+     	<div class="input-group-lg input-group-sm input-group " >
+      <input id="geocomplete" type="text" class="input-sm input-sm" placeholder="Type in an address" size="80"/>
+      <button type="button" id="geoc" onclick="return false;" class="btn btn-xs btn-lg btn-primary" value="Search"  >
+      	Search
+      </button>
+      </div>
+    </form>
+    </p>
+    <div class="map_canvas">
+    	
+    </div>
+    
+   
+   
+    <script>
+   
+      $(document).ready(function(){
+        report();
+        news();
+       geo();
+       
+        var location=''; 
+          // var latlng = getLocation();
+           // console.log(latlng);
+      
+       // console.log(location);
+        
+
+         $('#geoc').click(function(){
+         var value = $('#geocomplete').val();
+        var val = value.split(',');
+        location = val[0];
+        report();
+        news();
+        });
+
+      });
+    function geo() {
+
+            var opts = {
+                enableHighAccuracy: true,
+                timeout: 60000,
+                maximumAge: 60000
+            };
+            
+            if(navigator.geolocation)
+                {
+                 watchID = navigator.geolocation.watchPosition(map_geo, handler3, opts);
+               // alert(watchID.toString());
+                 //map = new google.maps.Map(document.getElementById("map"), watchID.keys());
+             }
+            else
+                alert("Geolocation not supported by your browser!");
+        }
+
+        // geolocation error handler
+        function handler3(err) {
+            alert("Error #" + err.code + ": " + err.message);
+            
+            // stop the watch, or iPhones will continuously show an error
+            navigator.geolocation.clearWatch(watchID);
+        }
+
+        // geolocation callback function        
+        function map_geo(pos) {
+
+            // fetch coordinates and store into a Google Maps LatLng object
+            var latlng = pos.coords.latitude+","+ pos.coords.longitude;
+            var accuracy = pos.coords.accuracy;
+           
+              $.get('http://maps.googleapis.com/maps/api/geocode/json?latlng='+latlng+'&sensor=true',function(data){
+                console.log(data);
+   locati = data.results[0].formatted_address;
+   //console.log(locati);
+    var options = {
+          map: ".map_canvas",
+          location: locati
+        };
+        
+        $("#geocomplete").geocomplete(options);
+   });
+            // nothing's been placed on the map yet, so let's create them
+            if(marker == null) {
+  
+                // display a marker at the location
+                marker = new google.maps.Marker({
+                    map: map,
+                    draggable: false,
+                    position: latlng
+                });
+    
+                // display a circle showing the accuracy radius
+                circle = new google.maps.Circle({
+                    map: map,
+                    clickable: false,
+                    fillColor: "#CC0000",
+                    fillOpacity: 0.15,
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 0.25,
+                    center: latlng,
+                    radius: accuracy
+                });
+
+
+            } else {
+                // we already have things on the map, let's update them
+                marker.setPosition(latlng);
+                circle.setCenter(latlng);
+                circle.setRadius(accuracy);
+            }
+
+            // set the center of the map to the location
+            map.setCenter(latlng);
+
+            // reset the zoom to show the entirety of the accuracy radius
+            if (accuracy >= 100)
+                map.fitBounds(circle.getBounds());
+            else 
+                // prevent the circle from becoming too small
+                map.setZoom(17);
+
+        }
+
+function report()
+            {
+                               
+                var address  =document.getElementById("geocomplete").value.toString();
+                var val = address.split(',');
+              
+                if(val[0]==''){
+                  //alert('Location cannot be Empty');
+                }else{
+                var url = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places%20where%20text%3D%22"+val[0]+"%2C%20ca%22)&format=json&diagnostics=true&callback=handler";
+              var element = document.createElement("script");
+              element.setAttribute("src",url);
+              document.getElementsByTagName("head")[0].appendChild(element);
+            }
+    }
+    function handler(o)
+    {
+       // alert(JSON.stringify(o));
+       /* alert("handler");
+        var items = o.query.results.channel.item.forecast;
+       // alert(items);
+        var output = '';
+        var no_items=items.length;
+        alert(no_items);
+        for(var i=0;i<no_items;i++){
+          var title = items[i].date;
+          var link = items[i].day;
+          var desc = items[i].text;
+          output +=  output+"<br>"+title+"<br>"+link+"<br>"+desc+"<br>";
+        }
+        
+        alert(output);*/
+       // alert("hyderabad");
+        var items = o.query.results.channel;
+        var count = items.length;
+       // alert(count);
+        if(count>1)
+        var output = items[0].item.description+"<br>";
+        else
+            var output = "<div class='well'>"+items.item.description+"</div>";
+       // alert(output.toString());
+        document.getElementById('temp').innerHTML = output;
+      }
+  function news()
+            {
+                  var address  =document.getElementById("geocomplete").value.toString();
+                var val = address.split(',');
+               
+                var url= "http://query.yahooapis.com/v1/public/yql?q=select%0A*%0Afrom%0Arss%20where%20url%20%3D%0A'https%3A%2F%2Fnews.google.co.in%2Fnews%2Ffeeds%3Fpz%3D1%26cf%3Dall%26ned%3Din%26hl%3Den%26geo%3D"+val[0]+"%26output%3Drss'&format=json&diagnostics=true&callback=handler1";
+              
+        var element = document.createElement("script");
+              element.setAttribute("src",url);
+              document.getElementsByTagName("head")[0].appendChild(element);
+    }     
+    function handler1(o)
+    {
+        var items= o.query.results.item;
+        
+        var output = '';
+        var no_items=items.length;
+        for(var i=0;i<no_items;i++){
+          var title = items[i].title;
+          var link = items[i].link;
+          var desc = items[i].description;
+          output += "<div class='well'><h3><a href='" + link + "'>"+title+"</a></h3><br /><p>" + desc + "</p></div><hr/>";  
+
+        }
+          document.getElementById('news').innerHTML = output;
+    }
+
+    </script>
+
+
+                </div>
+                <div class="tab-pane fade" id="weather">
+                  <p>
+                   <div id="temp"  style = "background-color:whitesmoke;">
+                                
+                            </div></p>
+                </div>
+                <div class="tab-pane fade" id="newss">
+                  <p>
+                      <div id="news" class="well">
+                                
+                            </div>
+                  </p>
+                </div>
+              
+              </div>
+            </div>
+          </div>
+          </div>
+          </div>
+
+         
+               </body>
+</html>
